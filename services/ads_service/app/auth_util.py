@@ -53,3 +53,14 @@ async def get_current_user_email(
     user_data: dict[str, Any] = Depends(get_current_user_data),
 ) -> str:
     return str(user_data["email"])
+
+
+def get_optional_user_email_from_assertion(x_jwt_assertion: str | None) -> str | None:
+    if not x_jwt_assertion:
+        return None
+
+    payload = _decode_payload(x_jwt_assertion)
+    email = payload.get("email") or payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=401, detail="User email not found in token")
+    return str(email)

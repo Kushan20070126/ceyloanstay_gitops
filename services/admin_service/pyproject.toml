@@ -1,0 +1,12 @@
+[project]
+name = "admin-service"
+version = "0.1.0"
+description = "Admin dashboard and KPI service"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "psycopg2-binary>=2.9.11",
+    "sqlalchemy>=2.0.45",
+    "uvicorn>=0.40.0",
+]

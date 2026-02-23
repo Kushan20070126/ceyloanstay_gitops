@@ -36,3 +36,7 @@ def upload_to_minio(file_data: bytes, file_name: str, content_type: str) -> str:
 def get_object_stream(file_name: str):
 
     return client.get_object(BUCKET_NAME, file_name)
+
+
+def delete_object(file_name: str) -> None:
+    client.remove_object(BUCKET_NAME, file_name)

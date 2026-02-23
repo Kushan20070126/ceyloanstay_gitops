@@ -45,3 +45,17 @@ class AdShortOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DraftAdIn(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    price: float | None = None
+    address: str | None = None
+    province: str | None = None
+    district: str | None = None
+    type: str | None = None
+    beds: int | None = None
+    baths: int | None = None
+    facilities: list[str] | None = None
+    images: list[str] | None = None

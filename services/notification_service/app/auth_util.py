@@ -1,16 +1,34 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-import jose.jwt
+import base64
+import json
+from typing import Any
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+from fastapi import Header, HTTPException
 
-def get_current_user_email(token: str = Depends(oauth2_scheme)):
+
+def _decode_payload(x_jwt_assertion: str) -> dict[str, Any]:
+    parts = x_jwt_assertion.split(".")
+    if len(parts) != 3:
+        raise HTTPException(status_code=401, detail="Invalid X-JWT-Assertion")
+
     try:
-       
-        payload = jose.jwt.get_unverified_claims(token)
-        email: str = payload.get("email") or payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Invalid Token")
-        return email
+        payload_b64 = parts[1]
+        payload_b64 += "=" * (-len(payload_b64) % 4)
+        payload_json = base64.urlsafe_b64decode(payload_b64).decode("utf-8")
+        payload = json.loads(payload_json)
+        if not isinstance(payload, dict):
+            raise ValueError("Payload is not an object")
+        return payload
     except Exception:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(status_code=401, detail="Invalid X-JWT-Assertion payload")
+
+
+def get_current_user_email(x_jwt_assertion: str | None = Header(default=None)) -> str:
+    if not x_jwt_assertion:
+        raise HTTPException(status_code=401, detail="Missing X-JWT-Assertion header")
+
+    payload = _decode_payload(x_jwt_assertion)
+    email = payload.get("email") or payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=401, detail="User email not found in token")
+
+    return str(email)

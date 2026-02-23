@@ -44,3 +44,13 @@ def delete(key: str) -> None:
         get_redis_client().delete(key)
     except Exception:
         return
+
+
+def delete_by_pattern(pattern: str) -> None:
+    try:
+        client = get_redis_client()
+        keys = list(client.scan_iter(match=pattern))
+        if keys:
+            client.delete(*keys)
+    except Exception:
+        return
