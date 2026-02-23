@@ -1,0 +1,33 @@
+nameOverride: "ads-service"
+fullnameOverride: "ads-service"
+replicaCount: 2
+
+image:
+  repository: "<registry>/<namespace>/ads-service"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+containerPort: 8000
+command: []
+args: []
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 80
+
+config:
+  DATABASE_URL: "postgresql://postgres:password@postgres-postgresql.database.svc.cluster.local:5432/ads"
+  RABBITMQ_HOST: "rabbitmq.database.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  MINIO_ENDPOINT: "minio.database.svc.cluster.local:9000"
+  REDIS_HOST: "redis-master.database.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+secrets:
+  MINIO_ACCESS: "minioadmin"
+  MINIO_SECRET: "minioadmin"
+  REDIS_PASSWORD: ""
+
+resources: {}

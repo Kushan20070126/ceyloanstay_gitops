@@ -20,7 +20,9 @@ QUEUE_NAME = "ai_processing_queue"
 NOTIFICATION_QUEUE = "notification_queue"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "last.pt")
+MODEL_PATH = os.getenv("AI_MODEL_PATH", os.path.join(BASE_DIR, "last.pt"))
+CONFIDENCE_THRESHOLD = float(os.getenv("AI_CONFIDENCE_THRESHOLD", "0.5"))
+MIN_UNIQUE_CLASSES_FOR_VALID_AD = int(os.getenv("MIN_UNIQUE_CLASSES_FOR_VALID_AD", "2"))
 
 LABEL_NAMES = {
     0: "bed",
@@ -39,9 +41,8 @@ LABEL_NAMES = {
     13: "sink",
     14: "mirror",
 }
-MIN_UNIQUE_CLASSES_FOR_VALID_AD = 2
 
-print("Initializing AI Worker Service...")
+print(f"Initializing AI Worker Service (YOLO mode) with model: {MODEL_PATH}")
 
 minio_client = Minio(
     MINIO_ENDPOINT,
@@ -57,9 +58,13 @@ except Exception as error:
     print(f"Failed to initialize DB: {error}")
     raise SystemExit(1)
 
+if not os.path.exists(MODEL_PATH):
+    print(f"Model file not found: {MODEL_PATH}")
+    raise SystemExit(1)
+
 try:
     model = YOLO(MODEL_PATH)
-    print(f"AI model loaded: {MODEL_PATH}")
+    print("YOLO model loaded successfully.")
 except Exception as error:
     print(f"Failed to load YOLO model: {error}")
     raise SystemExit(1)
@@ -120,22 +125,22 @@ def classify_single_image(image_name: str) -> dict[str, Any]:
         response = minio_client.get_object("boarding-images", clean_name)
         frame = _decode_image(response.read())
         if frame is None:
-            result["error"] = "Invalid image data"
+            result["error"] = "invalid_image"
             return result
 
-        predictions = model.predict(frame, conf=0.5, verbose=False, device="cpu")
-
+        predictions = model.predict(frame, conf=CONFIDENCE_THRESHOLD, verbose=False, device="cpu")
         detected_ids: set[int] = set()
+
         for prediction in predictions:
             for box in prediction.boxes:
                 cls_id = int(box.cls[0])
                 if cls_id in LABEL_NAMES:
                     detected_ids.add(cls_id)
 
-        detected_labels = [LABEL_NAMES[i] for i in sorted(detected_ids)]
+        labels = [LABEL_NAMES[i] for i in sorted(detected_ids)]
         result["detected_class_ids"] = sorted(detected_ids)
-        result["detected_labels"] = detected_labels
-        result["label"] = "normal" if detected_labels else "anomaly"
+        result["detected_labels"] = labels
+        result["label"] = "normal" if labels else "anomaly"
         return result
 
     except Exception as error:
@@ -158,8 +163,7 @@ def classify_ad_images(ad_id: int, image_paths: list[str]) -> dict[str, Any]:
 
     unique_count = len(all_detected_ids)
     unique_labels = [LABEL_NAMES[i] for i in sorted(all_detected_ids)]
-    has_anomaly = any(item["label"] == "anomaly" for item in image_results)
-
+    anomaly_count = sum(1 for item in image_results if item.get("label") == "anomaly")
     is_valid_ad = unique_count >= MIN_UNIQUE_CLASSES_FOR_VALID_AD
 
     summary = {
@@ -167,7 +171,8 @@ def classify_ad_images(ad_id: int, image_paths: list[str]) -> dict[str, Any]:
         "is_valid_ad": is_valid_ad,
         "unique_label_count": unique_count,
         "unique_labels": unique_labels,
-        "has_anomaly_images": has_anomaly,
+        "total_images": len(image_results),
+        "anomaly_images": anomaly_count,
         "images": image_results,
     }
 
