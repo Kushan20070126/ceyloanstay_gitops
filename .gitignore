@@ -36,4 +36,15 @@ Thumbs.db
 
 # Sensitive files (add specific names here)
 # .env # uncomment if you store sensitive variables in a .env file and want to ignore it
-
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+README.md
+uv.lock
+docker-compose.yml
