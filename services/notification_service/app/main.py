@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import auth_util, crud, models, rabbitmq, schemas
+from . import auth_util, crud, rabbitmq, schemas
 from .database import Base, SessionLocal, engine, get_db
 
 Base.metadata.create_all(bind=engine)

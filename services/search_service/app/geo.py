@@ -1,6 +1,5 @@
 import hashlib
 import math
-from typing import Tuple
 
 from .models import PropertyAd
 
@@ -46,7 +45,6 @@ def _stable_offset(seed: str) -> tuple[float, float]:
 
 
 def ad_coordinates(ad: PropertyAd) -> tuple[float, float]:
-    
     district_key = (ad.district or "").strip().lower()
     base_lat, base_lon = DISTRICT_COORDS.get(district_key, DEFAULT_CENTER)
     seed = f"{ad.id}:{ad.address or ''}:{ad.district or ''}"

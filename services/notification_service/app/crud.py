@@ -17,7 +17,7 @@ def get_notifications(db: Session, email: str):
 def mark_all_as_read(db: Session, email: str):
     (
         db.query(models.Notification)
-        .filter(models.Notification.user_email == email, models.Notification.is_read == False)
+        .filter(models.Notification.user_email == email, models.Notification.is_read.is_(False))
         .update({"is_read": True})
     )
     db.commit()

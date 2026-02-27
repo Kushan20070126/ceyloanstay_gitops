@@ -8,7 +8,6 @@ import numpy as np
 import pika
 import psycopg2
 from minio import Minio
-from psycopg2 import pool
 from ultralytics import YOLO
 
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")

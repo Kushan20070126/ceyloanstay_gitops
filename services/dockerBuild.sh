@@ -5,7 +5,7 @@ cd /home/kushan/Documents/ceyloanstay_gitops/services
 
 REGISTRY="${REGISTRY:-docker.io}"
 NAMESPACE="${NAMESPACE:-kushanrandika}"
-TAG="${TAG:-v1.0.0}"
+TAG="${TAG:-v1.0.1}"
 
 echo "Building images with: $REGISTRY/$NAMESPACE:*:$TAG"
 
