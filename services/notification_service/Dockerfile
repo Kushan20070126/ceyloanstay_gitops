@@ -12,7 +12,6 @@ RUN pip install --upgrade pip && pip install \
     "fastapi[standard]>=0.128.0" \
     "pika>=1.3.2" \
     "psycopg2-binary>=2.9.11" \
-    "python-jose>=3.5.0" \
     "sqlalchemy>=2.0.45" \
     "uvicorn>=0.40.0"
 

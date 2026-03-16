@@ -18,7 +18,6 @@ RUN pip install --upgrade pip && pip install \
     "pika>=1.3.2" \
     "psycopg2-binary>=2.9.11" \
     "psycopg[binary]>=3.3.2" \
-    "python-jose[cryptography]>=3.5.0" \
     "python-multipart>=0.0.21" \
     "redis>=6.4.0" \
     "sqlalchemy>=2.0.45" \

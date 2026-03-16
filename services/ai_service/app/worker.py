@@ -10,13 +10,41 @@ import psycopg2
 from minio import Minio
 from ultralytics import YOLO
 
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        print(f"Invalid integer for {name}: {raw!r}. Using default {default}.")
+        return default
+
+
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
 MINIO_ACCESS = os.getenv("MINIO_ACCESS", "minioadmin")
 MINIO_SECRET = os.getenv("MINIO_SECRET", "minioadmin")
 DB_DSN = os.getenv("DB_DSN", "dbname=ads user=postgres password=password host=localhost port=5432")
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+RABBITMQ_PORT = _env_int("RABBITMQ_PORT", 5672)
+RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST", "/")
+RABBITMQ_USER = (
+    os.getenv("RABBITMQ_USER")
+    or os.getenv("RABBITMQ_USERNAME")
+    or os.getenv("RABBITMQ_DEFAULT_USER")
+    or "guest"
+)
+RABBITMQ_PASS = (
+    os.getenv("RABBITMQ_PASS")
+    or os.getenv("RABBITMQ_PASSWORD")
+    or os.getenv("RABBITMQ_DEFAULT_PASS")
+    or "guest"
+)
+RABBITMQ_URL = os.getenv("RABBITMQ_URL") or os.getenv("AMQP_URL")
 QUEUE_NAME = "ai_processing_queue"
 NOTIFICATION_QUEUE = "notification_queue"
+YOLO_CONFIG_DIR = os.getenv("YOLO_CONFIG_DIR", "/tmp/Ultralytics")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.getenv("AI_MODEL_PATH", os.path.join(BASE_DIR, "last.pt"))
@@ -41,7 +69,53 @@ LABEL_NAMES = {
     14: "mirror",
 }
 
+
+def _ensure_yolo_dirs() -> None:
+    # Ultralytics writes config/cache files; keep path writable in containers.
+    for path in {YOLO_CONFIG_DIR, os.path.join(YOLO_CONFIG_DIR, "Ultralytics"), "/tmp/Ultralytics"}:
+        try:
+            os.makedirs(path, exist_ok=True)
+            os.chmod(path, 0o777)
+        except Exception as error:
+            print(f"Warning: failed to prepare YOLO path '{path}': {error}")
+
+
+def _build_rabbitmq_parameters(
+    heartbeat: int = 600,
+    blocked_connection_timeout: int = 300,
+):
+    if RABBITMQ_URL:
+        params = pika.URLParameters(RABBITMQ_URL)
+        params.heartbeat = heartbeat
+        params.blocked_connection_timeout = blocked_connection_timeout
+        return params
+
+    return pika.ConnectionParameters(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        virtual_host=RABBITMQ_VHOST,
+        credentials=pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS),
+        heartbeat=heartbeat,
+        blocked_connection_timeout=blocked_connection_timeout,
+    )
+
+
+_ensure_yolo_dirs()
+
 print(f"Initializing AI Worker Service (YOLO mode) with model: {MODEL_PATH}")
+print(
+    "RabbitMQ config:",
+    json.dumps(
+        {
+            "host": RABBITMQ_HOST,
+            "port": RABBITMQ_PORT,
+            "vhost": RABBITMQ_VHOST,
+            "user": RABBITMQ_USER,
+            "url_mode": bool(RABBITMQ_URL),
+        },
+        ensure_ascii=True,
+    ),
+)
 
 minio_client = Minio(
     MINIO_ENDPOINT,
@@ -72,13 +146,7 @@ except Exception as error:
 def send_notification_event(user_email: str, message: str, ad_id: int | None = None) -> None:
     connection = None
     try:
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=RABBITMQ_HOST,
-                heartbeat=600,
-                blocked_connection_timeout=300,
-            )
-        )
+        connection = pika.BlockingConnection(_build_rabbitmq_parameters())
         channel = connection.channel()
         channel.queue_declare(queue=NOTIFICATION_QUEUE, durable=True)
 
@@ -237,7 +305,7 @@ def callback(ch, method, properties, body):
 def run_worker():
     while True:
         try:
-            params = pika.ConnectionParameters(host=RABBITMQ_HOST, heartbeat=600)
+            params = _build_rabbitmq_parameters()
             connection = pika.BlockingConnection(params)
             channel = connection.channel()
             channel.queue_declare(queue=QUEUE_NAME, durable=True)

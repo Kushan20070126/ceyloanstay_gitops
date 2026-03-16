@@ -168,7 +168,7 @@ def get_ad_by_id(ad_id: int, request: Request, db: Session = Depends(get_db)):
     if cached is not None:
         if cached.get("status") == "ACTIVE":
             return cached
-        viewer = auth_util.get_optional_user_email_from_assertion(request.headers.get("X-JWT-Assertion"))
+        viewer = auth_util.get_optional_user_email_from_assertion(request.headers.get("X-User-Email"))
         if viewer and cached.get("owner_email") == viewer:
             return cached
         raise HTTPException(status_code=403, detail="Only owner can view this ad")
@@ -177,7 +177,7 @@ def get_ad_by_id(ad_id: int, request: Request, db: Session = Depends(get_db)):
     if not ad:
         raise HTTPException(status_code=404, detail="Property not found")
     if ad.status != "ACTIVE":
-        viewer = auth_util.get_optional_user_email_from_assertion(request.headers.get("X-JWT-Assertion"))
+        viewer = auth_util.get_optional_user_email_from_assertion(request.headers.get("X-User-Email"))
         if not viewer or viewer != ad.owner_email:
             raise HTTPException(status_code=403, detail="Only owner can view this ad")
 
