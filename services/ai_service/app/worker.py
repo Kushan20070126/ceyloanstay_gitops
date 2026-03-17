@@ -285,9 +285,22 @@ def update_ad_and_notify(ad_id: int, status: str, user_email: str | None, summar
 def callback(ch, method, properties, body):
     try:
         data = json.loads(body)
-        ad_id = data.get("ad_id")
-        images = data.get("images", [])
-        user_email = data.get("owner_email")
+        if not isinstance(data, dict):
+            raise ValueError("Invalid task payload: expected JSON object")
+
+        ad_id_raw = data.get("ad_id")
+        if ad_id_raw is None:
+            raise ValueError("Missing ad_id in task payload")
+        ad_id = int(ad_id_raw)
+
+        images = data.get("images")
+        if images is None:
+            images = data.get("uploaded_filenames", [])
+        if not isinstance(images, list):
+            images = [images]
+        images = [str(item) for item in images if str(item).strip()]
+
+        user_email = data.get("owner_email") or data.get("email") or data.get("user_email")
 
         print(f"Task received: ad={ad_id}, owner={user_email}, images={len(images)}")
 

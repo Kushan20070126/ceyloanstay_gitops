@@ -161,7 +161,15 @@ def get_active_ads(db: Session = Depends(get_db)):
     return payload
 
 
-@app.get("/ads/{ad_id}")
+@app.get("/ads/me")
+def get_my_ads(
+    email: str = Depends(auth_util.get_current_user_email),
+    db: Session = Depends(get_db),
+):
+    return crud.get_user_ads(db, email)
+
+
+@app.get("/ads/{ad_id:int}")
 def get_ad_by_id(ad_id: int, request: Request, db: Session = Depends(get_db)):
     cache_key = f"ads:{ad_id}"
     cached = cache.get_json(cache_key)
@@ -184,14 +192,6 @@ def get_ad_by_id(ad_id: int, request: Request, db: Session = Depends(get_db)):
     payload = jsonable_encoder(ad)
     cache.set_json(cache_key, payload, CACHE_TTL_SECONDS)
     return payload
-
-
-@app.get("/ads/me")
-def get_my_ads(
-    email: str = Depends(auth_util.get_current_user_email),
-    db: Session = Depends(get_db),
-):
-    return crud.get_user_ads(db, email)
 
 
 @app.post("/ads/draft")

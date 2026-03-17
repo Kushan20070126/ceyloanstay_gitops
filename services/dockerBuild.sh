@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/kushan/Documents/ceyloanstay_gitops/services
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 REGISTRY="${REGISTRY:-docker.io}"
 NAMESPACE="${NAMESPACE:-kushanrandika}"
