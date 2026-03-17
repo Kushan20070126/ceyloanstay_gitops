@@ -6,7 +6,7 @@ from typing import Any
 import cv2
 import numpy as np
 import pika
-import psycopg2
+from psycopg2.pool import SimpleConnectionPool
 from minio import Minio
 from ultralytics import YOLO
 
@@ -125,7 +125,7 @@ minio_client = Minio(
 )
 
 try:
-    db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, dsn=DB_DSN)
+    db_pool = SimpleConnectionPool(1, 10, dsn=DB_DSN)
     print("Database connection pool ready.")
 except Exception as error:
     print(f"Failed to initialize DB: {error}")

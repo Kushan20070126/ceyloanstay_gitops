@@ -1,5 +1,6 @@
 from fastapi import Header, HTTPException
 
+
 def get_current_user_email(
     x_user_email: str | None = Header(default=None, alias="X-User-Email"),
 ) -> str:
@@ -7,3 +8,8 @@ def get_current_user_email(
     if not email:
         raise HTTPException(status_code=401, detail="Missing X-User-Email header")
     return email
+
+
+def get_optional_user_email_from_assertion(assertion: str | None) -> str | None:
+    email = (assertion or "").strip()
+    return email or None
