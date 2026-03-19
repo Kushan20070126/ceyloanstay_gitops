@@ -176,6 +176,54 @@ def update_ad_status(db: Session, ad_id: int, status: str) -> models.PropertyAd 
     return db_ad
 
 
+def update_ad(
+    db: Session,
+    ad_id: int,
+    owner_email: str,
+    updates: dict,
+) -> models.PropertyAd | None:
+    ad = get_owner_ad_by_id(db, ad_id, owner_email)
+    if not ad:
+        return None
+
+    field_map = {
+        "title": "title",
+        "description": "description",
+        "price": "price",
+        "address": "address",
+        "province": "province",
+        "district": "district",
+        "type": "type",
+        "beds": "beds",
+        "baths": "baths",
+        "facilities": "facilities",
+    }
+
+    for req_key, model_key in field_map.items():
+        if req_key in updates:
+            setattr(ad, model_key, updates[req_key])
+
+    db.commit()
+    db.refresh(ad)
+    return ad
+
+
+def deactivate_ad(
+    db: Session,
+    ad_id: int,
+    owner_email: str,
+    status: str = "INACTIVE",
+) -> models.PropertyAd | None:
+    ad = get_owner_ad_by_id(db, ad_id, owner_email)
+    if not ad:
+        return None
+
+    ad.status = status
+    db.commit()
+    db.refresh(ad)
+    return ad
+
+
 def delete_ad(db: Session, ad_id: int, email: str) -> bool:
     db_ad = (
         db.query(models.PropertyAd)

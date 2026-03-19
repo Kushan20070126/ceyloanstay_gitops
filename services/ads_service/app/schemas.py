@@ -19,10 +19,16 @@ class AdCreate(AdBase):
 
 
 class AdUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    price: float | None = None
-    status: str | None = None
+    title: str | None = Field(default=None, example="Updated Luxury Single Room")
+    description: str | None = Field(default=None, example="Updated ad description")
+    price: float | None = Field(default=None, gt=0, example=17500.0)
+    address: str | None = Field(default=None, example="No 48, Main Street, Malabe")
+    province: str | None = Field(default=None, example="Western")
+    district: str | None = Field(default=None, example="Colombo")
+    type: str | None = Field(default=None, example="single-room")
+    beds: int | None = Field(default=None, ge=0)
+    baths: int | None = Field(default=None, ge=0)
+    facilities: list[str] | None = None
 
 
 class AdOut(AdBase):

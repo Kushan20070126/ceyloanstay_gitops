@@ -194,6 +194,60 @@ def get_ad_by_id(ad_id: int, request: Request, db: Session = Depends(get_db)):
     return payload
 
 
+@app.put("/ads/{ad_id:int}")
+def update_ad(
+    ad_id: int,
+    ad_data: schemas.AdUpdate,
+    email: str = Depends(auth_util.get_current_user_email),
+    db: Session = Depends(get_db),
+):
+    updates = ad_data.model_dump(exclude_unset=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    if "facilities" in updates and updates["facilities"] is not None:
+        updates["facilities"] = [str(item).strip() for item in updates["facilities"] if str(item).strip()]
+
+    updated_ad = crud.update_ad(db, ad_id, email, updates)
+    if not updated_ad:
+        raise HTTPException(status_code=404, detail="Ad not found or access denied")
+
+    cache.delete("ads:active")
+    cache.delete(f"ads:{ad_id}")
+
+    return {
+        "status": "success",
+        "message": "Ad updated successfully",
+        "ad_id": ad_id,
+    }
+
+
+@app.patch("/ads/{ad_id:int}/deactivate")
+def deactivate_ad(
+    ad_id: int,
+    email: str = Depends(auth_util.get_current_user_email),
+    db: Session = Depends(get_db),
+):
+    deactivated_ad = crud.deactivate_ad(db, ad_id, email)
+    if not deactivated_ad:
+        raise HTTPException(status_code=404, detail="Ad not found or access denied")
+
+    cache.delete("ads:active")
+    cache.delete(f"ads:{ad_id}")
+
+    rabbitmq.send_notification_event(
+        user_email=email,
+        ad_id=ad_id,
+        message="Your ad was deactivated successfully.",
+    )
+
+    return {
+        "status": "success",
+        "message": "Ad deactivated successfully",
+        "ad_id": ad_id,
+    }
+
+
 @app.post("/ads/draft")
 def create_draft_ad(
     draft_data: schemas.DraftAdIn,
