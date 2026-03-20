@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AdminKPIOut(BaseModel):
@@ -15,3 +15,16 @@ class AdminKPIOut(BaseModel):
 class AdminOverviewOut(BaseModel):
     kpis: AdminKPIOut
     recent_ads: list[dict]
+
+
+class FacilityCreateIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120, example="Wifi")
+
+
+class FacilityOut(BaseModel):
+    id: int
+    name: str
+
+
+class FacilityUpsertOut(FacilityOut):
+    created: bool
