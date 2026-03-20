@@ -75,21 +75,15 @@ def _ensure_facilities_table(db: Session) -> None:
     _facilities_table_ready = True
 
 
-def list_facilities(db: Session, query: str | None = None, limit: int = 100, skip: int = 0) -> list[dict]:
+def list_facilities(db: Session) -> list[dict]:
     _ensure_facilities_table(db)
-    normalized_query = query.strip() if query else None
-    pattern = f"%{normalized_query}%" if normalized_query else None
     return _safe_rows(
         db,
         """
         SELECT id, name
         FROM facilities
-        WHERE (:pattern IS NULL OR name ILIKE :pattern)
         ORDER BY name ASC, id ASC
-        OFFSET :skip
-        LIMIT :limit
         """,
-        {"pattern": pattern, "skip": skip, "limit": limit},
     )
 
 

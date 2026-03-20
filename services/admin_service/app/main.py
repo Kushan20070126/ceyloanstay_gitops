@@ -51,15 +51,12 @@ def get_ads(
     return crud.list_ads(db, status=status, limit=limit, skip=skip)
 
 
-@app.get("/facilities", response_model=list[schemas.FacilityOut])
+@app.get("/facilities", response_model=list[str])
 def get_facilities(
-    query: str | None = Query(default=None, min_length=1),
-    limit: int = Query(default=100, ge=1, le=500),
-    skip: int = Query(default=0, ge=0),
-    _admin: dict = Depends(auth_util.require_admin_or_super_admin),
     db: Session = Depends(get_db),
 ):
-    return crud.list_facilities(db, query=query, limit=limit, skip=skip)
+    facilities = crud.list_facilities(db)
+    return [item["name"] for item in facilities]
 
 
 @app.post("/facilities", response_model=schemas.FacilityUpsertOut)
